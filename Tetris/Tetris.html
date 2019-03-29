@@ -1,0 +1,367 @@
+<html>
+<head>
+    <title> xxx</title>
+    <meta name="Generator" content="EditPlus">
+    <meta name="Author" content="">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+    <style type="text/css">
+        table {
+            margin: 100px auto;
+            background-color: rgb(168, 209, 217);
+        }
+
+        td {
+            width: 18px;
+            height: 18px;
+
+            background-color: #fff;
+            border: 0px
+        }
+
+        .current {
+            background: #71ff7d;
+        }
+
+        .end {
+            background: #6a93c2;
+        }
+    </style>
+    <script type="text/javascript" src="../js/jquery-1.11.1.js">
+    </script>
+    <script type="text/javascript">
+        var timer;
+        var col = 10;
+        var rows = 20;
+        var tab = null;
+        var score = 0;//得分
+        var speed = 1000;//下落速度
+        var interval = 3;
+        var tmp = new Array();//方块的信息
+        var tmp2 = new Array(4);//方块的位置
+        var point = new Array(2);//旋转点
+        $(function () {
+            tab = $('table');
+
+            //生成游戏界面
+            for (var r = 0; r < rows; r++) {//行
+                var row = $('<tr/>');
+                tab.append(row);
+                for (var c = 0; c < col; c++) {//列
+                    row.append('<td/>');
+                }
+            }
+
+            autoGenerate();
+            control();
+        });
+
+        function autoGenerate() {
+            clearInterval(timer);
+            timer = setInterval(down, speed);
+            generateGraph();
+            //相应位置变色
+            point = [1 + interval, tmp[0]];
+            for (var i = 0; i < tmp2.length; i++) {
+                tab.find("td").eq(col * tmp2[i][1] + tmp2[i][0]).addClass("current");
+            }
+        }
+        function control() {
+            //按键按下
+            $("body").keydown(function (e) {
+                //上键
+                if (e.keyCode == 38 || e.keyCode == 74 || e.keyCode == 87) {
+                    rotate();
+                }
+                //下键
+                if (e.keyCode == 40 || e.keyCode == 83) {
+                    down();
+                }
+                //左键
+                if (e.keyCode == 37 || e.keyCode == 65) {
+                    left();
+                }
+                //右键
+                if (e.keyCode == 39 || e.keyCode == 68) {
+                    right();
+                }
+            });
+        }
+        function rotate() {
+            //坐标（x，y）绕（x0，y0）逆时针旋转90度后的坐标为（x0+y0-y，y0-x0+x）
+            if (tmp[1] == 6) {
+                return;
+            }
+            //变形后的厚度
+            if (tmp[2] == 4) {
+                tmp[2] = 1;
+            } else if (tmp[2] == 1) {
+                tmp[2] = 4;
+            }
+
+            if (tmp[2] == 2) {
+                tmp[2] = 3;
+            } else if (tmp[2] == 3) {
+                tmp[2] = 2;
+            }
+            //是否符合旋转条件
+            for (var i = 0; i < tmp2.length; i++) {
+                if (tmp2[i] == point)
+                    continue;
+                var colNum = point[0] + point[1] - tmp2[i][1];
+                var rowNum = point[1] - point[0] + tmp2[i][0];
+                if (tab.find("td").eq(colNum * col + rowNum).hasClass(".end") || colNum < 0 || colNum > col - 1 || rowNum < 0 || rowNum > rows - 1) {
+                    return;
+                }
+            }
+            //旋转 维护tmp[0] tmp2
+            var max = 0;
+            //承装变色失败的区域
+            var container = [];
+            for (var i = 0; i < tmp2.length; i++) {
+
+                //找到要变色的区域
+                tab.find("td").eq(tmp2[i][1] * col + tmp2[i][0]).removeClass("current");
+                tmp2[i] = [point[0] + point[1] - tmp2[i][1], point[1] - point[0] + tmp2[i][0]];
+                //遇到那个区域已经有颜色，先存起来
+                if (tab.find("td").eq((tmp2[i][1]) * col + tmp2[i][0]).hasClass("current")) {
+                    container.push((tmp2[i][1]) * col + tmp2[i][0]);
+                }
+                tab.find("td").eq((tmp2[i][1]) * col + tmp2[i][0]).addClass("current");
+
+                //维护tmp[0]
+                if (tmp2[i][1] > max) {
+                    max = tmp2[i][1];
+                }
+            }
+            for (var i = 0; i < container.length; i++) {
+                tab.find("td").eq(container[i]).addClass("current");
+            }
+            tmp[0] = max;
+        }
+
+        function left() {
+            var tmp3 = [];
+            var tmp4 = [];
+            for (var i = 0; i < tmp2.length; i++) {
+                for (var j = 0; j < tmp3.length; j++) {
+                    if (tmp2[i][1] == tmp3[j][1] && tmp2[i][0] < tmp3[j][0]) {
+                        tmp4.push(tmp3.splice(j, 1)[0]);
+                    }
+                }
+                tmp3.push(tmp2[i]);
+            }
+
+            for (var i = 0; i < tmp3.length; i++) {
+                if (tmp3[i][0] == 0 || tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0] - 1).hasClass("end")) {
+                    return;
+                }
+            }
+            while (tmp4.length > 0) {
+                tmp3.push(tmp4.pop());
+            }
+
+            for (var i = 0; i < tmp3.length; i++) {
+
+                tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0] - 1).addClass("current");
+                tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0]).removeClass("current");
+            }
+
+            for (var i = 0; i < tmp2.length; i++) {
+                tmp2[i][0]--;
+            }
+            point[0]--;
+        }
+
+        function right() {
+            var tmp3 = [];
+            var tmp4 = [];
+            for (var i = 0; i < tmp2.length; i++) {
+                for (var j = 0; j < tmp3.length; j++) {
+                    if (tmp2[i][1] == tmp3[j][1] && tmp2[i][0] > tmp3[j][0]) {
+                        tmp4.push(tmp3.splice(j, 1)[0]);
+                    }
+                }
+                tmp3.push(tmp2[i]);
+            }
+
+            for (var i = 0; i < tmp3.length; i++) {
+                if (tmp3[i][0] == col - 1 || tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0] + 1).hasClass("end")) {
+                    return;
+                }
+            }
+
+            while (tmp4.length > 0) {
+                tmp3.push(tmp4.pop());
+            }
+            for (var i = 0; i < tmp3.length; i++) {
+
+                tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0] + 1).addClass("current");
+                tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0]).removeClass("current");
+            }
+
+            for (var i = 0; i < tmp2.length; i++) {
+                tmp2[i][0]++;
+            }
+            point[0]++;
+        }
+
+        function down() {
+            var tmp3 = [];
+            var tmp4 = [];
+            //先找到底部的，移动的时候先移动
+            for (var i = 0; i < tmp2.length; i++) {
+                for (var j = 0; j < tmp3.length; j++) {
+                    if (tmp2[i][0] == tmp3[j][0] && tmp2[i][1] > tmp3[j][1]) {
+                        tmp4.push(tmp3.splice(j, 1)[0]);
+                    }
+                }
+                tmp3.push(tmp2[i]);
+            }
+
+            //判断是否能移动
+            for (var i = 0; i < tmp3.length; i++) {
+                if (tab.find("td").eq(col * (tmp3[i][1] + 1) + tmp3[i][0]).hasClass("end") || tmp[0] == rows - 1) {
+                    finish();
+                    clearInterval(timer);
+                    //消除()
+                    for (var i = tmp[0]-tmp[2]+1; i<=tmp[0]; i++) {
+                        while (tab.find("tr").eq(i).children("[class='end']").length == col) {
+
+                            tab.find("tr").eq(i).remove();
+                            var row = $('<tr/>');
+                            tab.prepend(row);
+                            for (var c = 0; c < col; c++) {
+                                row.prepend('<td/>');
+                            }
+
+                        }
+                    }
+
+                    if (hasSpace()) {
+                        autoGenerate();
+                    } else {
+                        alert("gameover");
+                    }
+                    return;
+                }
+            }
+            while (tmp4.length > 0) {
+                tmp3.push(tmp4.pop());
+            }
+
+            //移动
+            for (var i = 0; i < tmp3.length; i++) {
+
+                tab.find("td").eq(col * (tmp3[i][1] + 1) + tmp3[i][0]).addClass("current");
+                tab.find("td").eq(col * tmp3[i][1] + tmp3[i][0]).removeClass("current");
+            }
+
+            //维护数组
+            tmp[0]++;
+            for (var i = 0; i < tmp2.length; i++) {
+                tmp2[i][1]++;
+            }
+            point[1]++;
+
+        }
+
+        function finish() {
+            for (var i = 0; i < tmp2.length; i++) {
+                tab.find("td").eq(col * tmp2[i][1] + tmp2[i][0]).removeClass("current").addClass("end");
+            }
+        }
+
+        function hasSpace() {
+            for (var i = 0; i < 2; i++) {
+                for (var j = interval; j < interval + 4; j++) {
+                    if (tab.find("td").eq(col * i + j).hasClass("end")) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function generateGraph() {
+            tmp = [];
+            tmp2 = [];
+            var ran = Math.floor(Math.random() * 7);
+
+            switch (ran) {
+                case 0:
+                    // stick
+                    tmp[0] = 0;// 当前哪行？
+                    tmp[1] = ran;
+                    tmp[2] = 1;//厚度
+                    tmp2[0] = [interval, 0];
+                    tmp2[1] = [interval + 1, 0];
+                    tmp2[2] = [interval + 2, 0];
+                    tmp2[3] = [interval + 3, 0];
+                    break;
+                case 1:
+                    // T
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval, 1];
+                    tmp2[1] = [interval + 1, 1];
+                    tmp2[2] = [interval + 2, 1];
+                    tmp2[3] = [interval + 1, 0];
+                    break;
+                case 2:
+                    // S
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval, 1];
+                    tmp2[1] = [interval + 1, 1];
+                    tmp2[2] = [interval + 1, 0];
+                    tmp2[3] = [interval + 2, 0];
+                    break;
+                case 3://Z
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval + 1, 1];
+                    tmp2[1] = [interval + 2, 1];
+                    tmp2[2] = [interval, 0];
+                    tmp2[3] = [interval + 1, 0];
+                    break;
+                case 4://l1
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval, 1];
+                    tmp2[1] = [interval + 1, 1];
+                    tmp2[2] = [interval + 2, 1];
+                    tmp2[3] = [interval, 0];
+                    break;
+                case 5://l2
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval, 1];
+                    tmp2[1] = [interval + 1, 1];
+                    tmp2[2] = [interval + 2, 1];
+                    tmp2[3] = [interval + 2, 0];
+                    break;
+                case 6:
+                    tmp[0] = 1;
+                    tmp[1] = ran;
+                    tmp[2] = 2;
+                    tmp2[0] = [interval, 1];
+                    tmp2[1] = [interval + 1, 1];
+                    tmp2[2] = [interval, 0];
+                    tmp2[3] = [interval + 1, 0];
+                    break;
+            }
+        }
+    </script>
+</head>
+
+<body>
+<table border="0px" cellpadding="2px" cellspacing="1px">
+</table>
+</body>
+</html>
